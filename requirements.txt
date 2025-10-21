@@ -1,0 +1,15 @@
+# Missing Object Surveillance System - Requirements
+# Python 3.8+ required
+
+# Core Dependencies
+opencv-python>=4.8.0
+ultralytics>=8.0.0
+numpy>=1.24.0
+
+# Optional (automatically installed with ultralytics)
+torch>=2.0.0
+torchvision>=0.15.0
+pillow>=9.5.0
+
+# Additional utilities
+PyYAML>=6.0
