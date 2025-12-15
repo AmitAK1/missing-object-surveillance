@@ -55,12 +55,15 @@ ipython_config.py
 models/*.pt
 models/*.pth
 
-# Output files
+# Output files - Ignore all generated files but keep folder structure
 output/alerts/*.jpg
 output/alerts/*.png
 output/alerts/*.mp4
-# Keep the directory structure
+output/captured_frames/*.jpg
+output/captured_frames/*.png
+# Keep the directory structure with .gitkeep files
 !output/alerts/.gitkeep
+!output/captured_frames/.gitkeep
 
 # Video files
 *.mp4

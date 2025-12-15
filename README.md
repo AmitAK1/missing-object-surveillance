@@ -1,291 +1,249 @@
 # 🎥 Missing Object Surveillance System
 
-A real-time object tracking and monitoring system using YOLOv8 that alerts when monitored objects are removed or go missing. Features advanced object tracking, multiple ROI monitoring, and a user-friendly interface.
-
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-green.svg)
-![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+A real-time computer vision system that monitors objects using YOLOv8 and automatically detects when registered objects go missing from the surveillance area. Built with Python, OpenCV, and a modern GUI interface.
 
 ## 🌟 Features
 
 ### Core Functionality
-- **🎯 Advanced Object Tracking** - Uses YOLOv8 with ByteTrack for robust object tracking
-- **📹 Live Preview Mode** - Capture the perfect frame before starting monitoring
-- **🔄 Multiple ROI Support** - Monitor multiple objects simultaneously
-- **🆔 Unique Object Identity** - Each object gets a unique tracking ID
-- **🚀 Movement Tolerance** - Objects can move freely; only alerts on removal
-- **⚡ Real-time Alerts** - Instant notifications when objects go missing
-- **📸 Alert Snapshots** - Automatic screenshot capture when alerts trigger
+- **Real-time Object Detection** - Powered by YOLOv8 for accurate object recognition
+- **Missing Object Detection** - Automatically tracks registered objects and alerts when they disappear
+- **Multiple Camera Support** - Works with webcams, IP cameras, and video files
+- **Smart Alert System** - Email notifications with captured images when objects go missing
 
-### User Experience
-- **⌨️ Interactive Controls** - Keyboard shortcuts for all operations
-- **🎨 Visual Feedback** - Color-coded status indicators (Green/Yellow/Red)
-- **🔁 Dynamic Re-selection** - Change ROIs without restarting
-- **🛑 Exit Anytime** - Clean program termination at any stage
+### User Interface
+- **Modern GUI Dashboard** - Built with CustomTkinter for a clean, intuitive interface
+- **Live Statistics** - Real-time tracking of detection counts, missing objects, and alerts
+- **Visual Feedback** - Color-coded object status (Green: Present, Red: Missing, Yellow: Newly Detected)
+- **Interactive Controls** - Keyboard shortcuts for easy operation
 
-## 🎬 Demo
+### Advanced Features
+- **Persistent State Management** - Remembers registered objects across sessions
+- **Cooldown System** - Prevents alert spam with configurable cooldown periods
+- **Screenshot Capture** - Automatically saves frames when objects go missing
+- **Statistics Dashboard** - Detailed analytics and visual charts
+- **Email Alert System** - Professional HTML email notifications with images
 
-### How It Works
-
-1. **Live Preview** - Position your camera and objects
-2. **Select ROI(s)** - Draw boxes around objects to monitor
-3. **Auto-Track** - System assigns unique IDs to each object
-4. **Monitor** - Objects can move freely, alerts only on removal
-
-```
-┌─────────────────────────────────────┐
-│  STATUS: All Secured                │
-│  METHOD 2: Tracker Mode             │
-├─────────────────────────────────────┤
-│                                     │
-│  🟢┌────────┐         📱           │
-│    │ Home   │       phone 12        │
-│    │  ROI   │                       │
-│    └────────┘                       │
-│    ROI1: phone (ID:12)              │
-│                                     │
-│  Phone can move anywhere!           │
-└─────────────────────────────────────┘
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
+## 📋 Prerequisites
 
 - Python 3.8 or higher
-- Webcam or video file
-- Windows/Linux/MacOS
+- Webcam or video source
+- (Optional) Gmail account for email alerts
 
-### Installation
+## 🚀 Installation
 
-1. **Clone the repository**
+### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/yourusername/missing-object-surveillance.git
-cd missing-object-surveillance
+git clone https://github.com/yourusername/missing_object_surveillance.git
+cd missing_object_surveillance
 ```
 
-2. **Create virtual environment (recommended)**
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. **Install dependencies**
+### Step 2: Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Run the program**
+This will install:
+- OpenCV for video processing
+- Ultralytics YOLOv8 for object detection
+- CustomTkinter for modern GUI
+- Additional utilities (matplotlib, pandas, python-dotenv)
+
+### Step 3: (Optional) Configure Email Alerts
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your Gmail credentials:
+   ```
+   EMAIL_SENDER=your-email@gmail.com
+   EMAIL_PASSWORD=your-app-password
+   EMAIL_RECIPIENTS=recipient@gmail.com
+   ```
+
+3. Generate Gmail App Password:
+   - Go to [Google Account Security](https://myaccount.google.com/security)
+   - Enable 2-Step Verification
+   - Generate App Password for "Mail"
+   - Use the 16-character password in `.env`
+
+**Note:** Email alerts are optional. The system works without them!
+
+## 🎮 Usage
+
+### Quick Start
 ```bash
-python main.py
+python gui_app.py
 ```
 
-## 📖 Usage Guide
-
-### Basic Usage
-
-```bash
-python main.py
-```
-
-### Step-by-Step
-
-1. **Live Preview**
-   - Camera feed starts automatically
-   - Press `c` to capture frame when ready
-   - Press `q` to quit
-
-2. **Mode Selection**
-   - Press `s` for Single ROI (one object)
-   - Press `m` for Multiple ROI (2+ objects)
-
-3. **Draw ROI(s)**
-   - Drag mouse to draw box around object
-   - Press `ENTER` to confirm
-   - Press `a` to add more (multiple mode)
-
-4. **Monitoring**
-   - System assigns tracking ID to each object
-   - Objects can move freely in frame
-   - Alert triggers if object removed
+The GUI will open automatically with your default camera.
 
 ### Keyboard Controls
+- **`r`** - Register new object (hover mouse over detected object)
+- **`u`** - Unregister object
+- **`s`** - Save current frame
+- **`d`** - Open statistics dashboard
+- **`h`** - Toggle help overlay
+- **`q`** - Quit application
 
-| Key | Action | Available When |
-|-----|--------|----------------|
-| `c` | Capture frame | Live preview |
-| `r` | Refresh / Re-select ROI | Live preview / Monitoring |
-| `q` | Quit program | Anytime |
-| `s` | Single ROI mode | Mode selection |
-| `m` | Multiple ROI mode | Mode selection |
-| `a` | Add another ROI | Multiple ROI drawing |
-| `ENTER` | Confirm ROI | ROI drawing |
+### How to Use
 
-## ⚙️ Configuration
+1. **Start the Application** - Run `gui_app.py`
+2. **Position Objects** - Place objects you want to monitor in camera view
+3. **Register Objects** - Hover mouse over detected object and press `r`
+4. **Monitor** - System will automatically alert when registered objects disappear
+5. **View Statistics** - Press `d` to see detection analytics
 
-Edit `config.py` to customize behavior:
-
-```python
-# Video Source
-VIDEO_SOURCE = 0  # 0 for webcam, or "path/to/video.mp4"
-
-# Model
-MODEL_PATH = "yolov8n.pt"  # or use custom trained model
-
-# Alert Threshold
-ALERT_THRESHOLD = 25  # Frames before alert (25 frames ≈ 1 second at 25 FPS)
-```
-
-## 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
 missing_object_surveillance/
-├── main.py                      # Main application
-├── config.py                    # Configuration settings
-├── requirements.txt             # Python dependencies
+├── gui_app.py              # Main application entry point
+├── config.py               # Configuration settings
+├── requirements.txt        # Python dependencies
+├── .env.example           # Email configuration template
 ├── core/
-│   ├── __init__.py
-│   └── state_manager.py         # Alert state management
+│   ├── surveillance_engine.py   # Core detection logic
+│   ├── state_manager.py         # State persistence
+│   └── statistics_manager.py    # Analytics tracking
+├── gui/
+│   └── dashboard_window.py      # Statistics dashboard
+├── utils/
+│   ├── email_alerter.py         # Email notification system
+│   └── gui_utils.py             # GUI rendering utilities
 ├── models/
-│   └── best_custom.pt           # (Optional) Custom trained model
+│   └── best_custom.pt           # Custom trained model (optional)
 ├── output/
-│   └── alerts/
-│       └── alert.jpg            # Alert snapshots
-├── yolov8n.pt                   # Pre-trained YOLO model
-└── Documentation/
-    ├── METHOD2_DOCUMENTATION.md
-    ├── METHOD_COMPARISON.md
-    ├── COMPLETE_GUIDE.md
-    └── ... (more docs)
+│   ├── alerts/                  # Alert screenshots
+│   └── captured_frames/         # Saved frames
+└── yolov8n.pt                   # YOLOv8 nano model
 ```
 
-## 🧠 How It Works
+## 🔧 Configuration
 
-### Method 2: Tracker-Based Monitoring
-
-Unlike simple detection, this system uses **object tracking**:
-
-1. **Initialization**: Assigns unique IDs to objects in ROIs
-2. **Tracking**: Monitors object IDs across entire frame
-3. **State Management**: Tracks presence/absence over time
-4. **Alerting**: Triggers only after threshold exceeded
-
-**Key Advantage**: Objects can move freely without false alarms!
+Edit `config.py` to customize:
 
 ```python
-# Detection (Method 1) - Limited
-roi_frame = frame[y1:y2, x1:x2]  # Only checks ROI
-results = model(roi_frame)        # Object must stay in box
+# Camera Settings
+CAMERA_SOURCE = 0              # 0 for webcam, or video file path
+CONFIDENCE_THRESHOLD = 0.5     # Detection confidence (0.0 - 1.0)
 
-# Tracking (Method 2) - Robust
-results = model.track(frame, persist=True)  # Tracks whole frame
-object_present = target_id in current_ids    # Checks specific object
+# Alert Settings
+MISSING_THRESHOLD = 3          # Frames before marking as missing
+ALERT_COOLDOWN = 300          # Seconds between alerts (5 minutes)
+
+# Display Settings
+FRAME_WIDTH = 1280
+FRAME_HEIGHT = 720
+FPS_TARGET = 30
 ```
 
-## 📊 Performance
+## 📊 Features in Detail
 
-| Configuration | FPS | CPU Usage | Use Case |
-|--------------|-----|-----------|----------|
-| Single object | 24-28 | 30-40% | Best performance |
-| 2-3 objects | 18-24 | 35-45% | Balanced |
-| 4-6 objects | 14-20 | 40-50% | Multiple monitoring |
+### Object Registration
+- Detects 80+ object classes (COCO dataset)
+- Register multiple objects simultaneously
+- Persistent storage across sessions
+- Visual confirmation with color-coded boxes
 
-*Tested on: Intel i5-8250U, 8GB RAM, Integrated Graphics*
+### Missing Object Detection
+- Tracks absence duration for each object
+- Configurable threshold before triggering alert
+- Prevents false positives from temporary occlusions
+
+### Email Alerts
+- Professional HTML email template
+- Includes captured image of missing object
+- Last seen timestamp and location
+- Cooldown system to prevent spam
+
+### Statistics Dashboard
+- Detection count per object class
+- Missing object timeline
+- Alert history
+- Visual charts and graphs
 
 ## 🎯 Use Cases
 
-- **🏢 Office Security** - Monitor laptops, phones, valuables
-- **🏛️ Museum Display** - Track artifacts and exhibits
-- **🏪 Retail** - Shelf monitoring, loss prevention
-- **🏠 Home Security** - Monitor keys, wallets, packages
-- **🔧 Workshop** - Track tools and equipment
-- **🐕 Pet Monitoring** - Track pet location in designated area
+- **Home Security** - Monitor valuable items
+- **Retail** - Track products on shelves
+- **Warehouse** - Inventory monitoring
+- **Personal** - Keep track of daily items (keys, wallet, phone)
+- **Office** - Equipment and asset monitoring
 
-## 🐛 Troubleshooting
+## 🛠️ Troubleshooting
 
-### Issue: "No tracking IDs assigned yet"
-**Solution**: Ensure objects are clearly visible and camera is stable when capturing initial frame.
+### Camera Not Opening
+- Check camera permissions
+- Try different camera index: `CAMERA_SOURCE = 1` in config.py
+- Verify camera is not in use by another application
 
-### Issue: Low FPS / Slow performance
-**Solution**: 
-- Use `yolov8n.pt` (fastest model)
-- Reduce number of tracked objects
-- Lower camera resolution in config
+### Email Alerts Not Working
+- Verify `.env` file exists and has correct credentials
+- Check Gmail App Password (not regular password)
+- Ensure 2-Step Verification is enabled on Google Account
+- Check spam folder for test emails
 
-### Issue: False alerts when object partially hidden
-**Solution**: Increase `ALERT_THRESHOLD` in `config.py` to give tracker more time to re-find object.
-
-### Issue: Program won't close
-**Solution**: Press `q` again, or use `Ctrl+C` in terminal.
-
-## 📚 Documentation
-
-Comprehensive documentation available in `/Documentation/`:
-
-- **COMPLETE_GUIDE.md** - Full user manual
-- **QUICK_REFERENCE.md** - Keyboard shortcuts & tips
-- **METHOD2_DOCUMENTATION.md** - Technical details
-- **METHOD_COMPARISON.md** - Method 1 vs Method 2
-- **METHOD2_VISUAL_GUIDE.md** - Visual step-by-step guide
-- **WORKFLOW_DIAGRAM.md** - System architecture
-
-## 🔬 Technical Stack
-
-- **Computer Vision**: OpenCV 4.8+
-- **Object Detection**: YOLOv8 (Ultralytics)
-- **Object Tracking**: ByteTrack (integrated in YOLOv8)
-- **Deep Learning**: PyTorch 2.0+
-- **Language**: Python 3.8+
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Authors
-
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) - Object detection and tracking
-- [OpenCV](https://opencv.org/) - Computer vision library
-- ByteTrack - Multi-object tracking algorithm
-
-## 📧 Contact
-
-For questions or support:
-- Email: your.email@example.com
-- GitHub Issues: [Create an issue](https://github.com/yourusername/missing-object-surveillance/issues)
+### Low Detection Accuracy
+- Adjust `CONFIDENCE_THRESHOLD` in config.py
+- Ensure good lighting conditions
+- Object must be clearly visible to camera
+- Try custom trained model for specific objects
 
 ## 🔮 Future Enhancements
 
-- [ ] Email/SMS notifications
-- [ ] Web dashboard for remote monitoring
-- [ ] Mobile app integration
-- [ ] Cloud storage for alerts
-- [ ] Custom object training tutorial
 - [ ] Multi-camera support
-- [ ] Zone-based tracking (alert if object leaves zone)
-- [ ] Tracking history and analytics
+- [ ] Cloud storage integration
+- [ ] Mobile app notifications
+- [ ] Custom object training interface
+- [ ] Video recording when alert triggered
+- [ ] Web-based dashboard
+- [ ] Database integration for long-term analytics
+
+## 📝 Technical Details
+
+### Technologies Used
+- **YOLOv8** - State-of-the-art object detection
+- **OpenCV** - Real-time video processing
+- **CustomTkinter** - Modern Python GUI framework
+- **Matplotlib** - Data visualization
+- **Python-dotenv** - Environment management
+
+### System Requirements
+- **CPU:** Intel i5 or equivalent (i7+ recommended)
+- **RAM:** 4GB minimum (8GB+ recommended)
+- **Storage:** 500MB for dependencies + output files
+- **Camera:** 720p or higher resolution
+- **OS:** Windows 10+, macOS 10.14+, Linux (Ubuntu 18.04+)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+This is a student project for Computer Vision course (Semester 5). Feedback and suggestions are welcome!
+
+## 👨‍💻 Author
+
+Developed as part of Computer Vision course project.
+
+## 🙏 Acknowledgments
+
+- YOLOv8 by Ultralytics
+- OpenCV community
+- CustomTkinter framework
+- COCO dataset for object classes
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+1. Check the troubleshooting section
+2. Review the code documentation
+3. Open an issue on GitHub
 
 ---
 
-⭐ **Star this repo if you find it helpful!** ⭐
+**⭐ If you find this project helpful, please consider giving it a star!**
 
-Made with ❤️ and OpenCV
+Made with ❤️ for Computer Vision Course - Semester 5

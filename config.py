@@ -8,3 +8,8 @@ MODEL_PATH = "yolov8n.pt"
 # --- Alert Logic ---
 # How many frames must the object be missing before we alert?
 ALERT_THRESHOLD = 25
+
+# --- Email Alert Configuration ---
+EMAIL_ALERTS_ENABLED = True  # Set to False to disable email alerts
+EMAIL_ALERT_COOLDOWN = 300  # Seconds between emails (300 = 5 minutes)
+EMAIL_INCLUDE_IMAGE = True  # Attach alert snapshot to email

@@ -1,2 +1,2 @@
-# This file ensures the alerts directory is tracked by git
-# Alert images will be saved here during runtime
+# This file keeps the alerts directory in git
+# Alert screenshots are saved here when objects go missing
