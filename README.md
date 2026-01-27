@@ -33,7 +33,7 @@ A real-time computer vision system that monitors objects using YOLOv8 and automa
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/yourusername/missing_object_surveillance.git
+git clone https://github.com/AmitAK1/missing_object_surveillance.git
 cd missing_object_surveillance
 ```
 
