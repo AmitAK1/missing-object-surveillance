@@ -3,6 +3,10 @@ Missing Object Surveillance - CustomTkinter GUI Application
 Professional GUI with camera feed, controls, and data viewing
 """
 
+import os
+# Fix for "OMP: Error #15: Initializing libiomp5md.dll" on Windows
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import customtkinter as ctk
 from tkinter import messagebox
 import cv2
@@ -11,7 +15,6 @@ import threading
 import time
 from core.surveillance_engine import SurveillanceEngine
 import config
-import os
 from datetime import datetime
 
 # Set appearance mode and color theme
@@ -310,9 +313,11 @@ class SurveillanceGUI:
         label = ctk.CTkLabel(frame, text="⚙️ Settings", font=ctk.CTkFont(size=14, weight="bold"))
         label.pack(pady=5)
         
-        # Alert Threshold
-        threshold_label = ctk.CTkLabel(frame, text=f"Alert Threshold: {config.ALERT_THRESHOLD} frames")
-        threshold_label.pack(padx=10, pady=2)
+        # --- Alert Threshold ---
+        self.threshold_label = ctk.CTkLabel(
+            frame, text=f"Alert Threshold: {config.ALERT_THRESHOLD} frames"
+        )
+        self.threshold_label.pack(padx=10, pady=(8, 2))
         
         self.threshold_slider = ctk.CTkSlider(
             frame,
@@ -323,23 +328,69 @@ class SurveillanceGUI:
         )
         self.threshold_slider.set(config.ALERT_THRESHOLD)
         self.threshold_slider.pack(fill="x", padx=10, pady=5)
-        self.threshold_label = threshold_label
+
+        # --- Confidence Threshold ---
+        self.conf_threshold_label = ctk.CTkLabel(
+            frame,
+            text=f"Confidence Threshold: {config.DETECTION_CONFIDENCE_THRESHOLD:.2f}"
+        )
+        self.conf_threshold_label.pack(padx=10, pady=(8, 2))
+        ctk.CTkLabel(
+            frame,
+            text="(Min confidence to register an object)",
+            font=ctk.CTkFont(size=10),
+            text_color=("gray50", "gray60")
+        ).pack()
         
-        # Video Source
+        self.conf_slider = ctk.CTkSlider(
+            frame,
+            from_=0.10,
+            to=0.90,
+            number_of_steps=16,
+            command=self.update_confidence_threshold
+        )
+        self.conf_slider.set(config.DETECTION_CONFIDENCE_THRESHOLD)
+        self.conf_slider.pack(fill="x", padx=10, pady=5)
+
+        # --- Video Source ---
         source_label = ctk.CTkLabel(frame, text="Video Source:")
         source_label.pack(padx=10, pady=(10, 2), anchor="w")
         
         self.video_source_entry = ctk.CTkEntry(frame, placeholder_text="0 for webcam")
         self.video_source_entry.insert(0, str(config.VIDEO_SOURCE))
         self.video_source_entry.pack(fill="x", padx=10, pady=2)
+
+        # --- Model Selector ---
+        model_label = ctk.CTkLabel(frame, text="🤖 Detection Model:")
+        model_label.pack(padx=10, pady=(12, 2), anchor="w")
         
-        # Model Path
-        model_label = ctk.CTkLabel(frame, text="Model:")
-        model_label.pack(padx=10, pady=(10, 2), anchor="w")
-        
-        self.model_entry = ctk.CTkEntry(frame)
-        self.model_entry.insert(0, config.MODEL_PATH)
-        self.model_entry.pack(fill="x", padx=10, pady=2)
+        # Speed/accuracy hint labels
+        hints_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        hints_frame.pack(fill="x", padx=10)
+        ctk.CTkLabel(
+            hints_frame,
+            text="n=fastest  s=balanced  m=accurate  l=best",
+            font=ctk.CTkFont(size=10),
+            text_color=("gray50", "gray60")
+        ).pack()
+
+        self.model_var = ctk.StringVar(value=config.MODEL_PATH)
+        self.model_combobox = ctk.CTkComboBox(
+            frame,
+            values=config.AVAILABLE_MODELS,
+            variable=self.model_var,
+            state="readonly"
+        )
+        self.model_combobox.pack(fill="x", padx=10, pady=5)
+
+        self.btn_apply_model = ctk.CTkButton(
+            frame,
+            text="🔄 Apply Model",
+            command=self.apply_model_change,
+            fg_color=("#1a5276", "#154360"),
+            hover_color=("#2e86c1", "#1a6fa8")
+        )
+        self.btn_apply_model.pack(fill="x", padx=10, pady=(0, 10))
     
     def setup_log_window(self, parent):
         """Setup log display window"""
@@ -661,6 +712,56 @@ class SurveillanceGUI:
         # Update existing state managers
         for roi_data in self.engine.roi_targets:
             roi_data['state_manager'].alert_threshold = threshold
+
+    def update_confidence_threshold(self, value):
+        """Update detection confidence threshold live"""
+        threshold = round(float(value), 2)
+        config.DETECTION_CONFIDENCE_THRESHOLD = threshold
+        self.conf_threshold_label.configure(
+            text=f"Confidence Threshold: {threshold:.2f}"
+        )
+        self.add_log(f"Confidence threshold updated: {threshold:.2f}")
+
+    def apply_model_change(self):
+        """Reload the surveillance engine with a newly selected YOLO model."""
+        selected_model = self.model_var.get()
+        if selected_model == config.MODEL_PATH:
+            self.add_log(f"Model '{selected_model}' is already active.")
+            return
+
+        # Can't change model while monitoring is active
+        if self.engine.is_monitoring:
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "Stop Monitoring First",
+                "Please stop monitoring before changing the model."
+            )
+            return
+
+        self.add_log(f"Applying model: {selected_model} (downloading if needed)...")
+        self.btn_apply_model.configure(text="⏳ Loading...", state="disabled")
+        self.root.update()
+
+        try:
+            config.MODEL_PATH = selected_model
+            self.engine.model_path = selected_model
+            success = self.engine.load_model()
+
+            if success:
+                self.add_log(f"✅ Model changed to: {selected_model}")
+                self.btn_apply_model.configure(
+                    text=f"✅ Active: {selected_model}",
+                    fg_color=("#1d8348", "#145a32")
+                )
+            else:
+                self.add_log(f"❌ Failed to load model: {selected_model}")
+                config.MODEL_PATH = self.engine.model_path
+                self.btn_apply_model.configure(text="🔄 Apply Model", state="normal")
+        except Exception as e:
+            self.add_log(f"❌ Error loading model: {e}")
+            self.btn_apply_model.configure(text="🔄 Apply Model", state="normal")
+        finally:
+            self.btn_apply_model.configure(state="normal")
     
     def update_status_display(self, status_dict):
         """Update status labels"""

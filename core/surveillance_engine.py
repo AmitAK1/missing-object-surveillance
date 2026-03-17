@@ -345,6 +345,7 @@ class SurveillanceEngine:
         # Get tracked data
         boxes = result.boxes.xyxy.cpu().numpy()
         classes = result.boxes.cls.cpu().numpy()
+        confidences = result.boxes.conf.cpu().numpy()  # detection confidence scores
         
         if result.boxes.id is not None:
             track_ids = result.boxes.id.cpu().numpy()
@@ -360,6 +361,14 @@ class SurveillanceEngine:
             best_overlap = 0
             
             for i in range(len(boxes)):
+                # --- Improvement #2: Confidence Threshold ---
+                # Skip low-confidence detections to avoid registering ghost objects.
+                conf = float(confidences[i])
+                if conf < config.DETECTION_CONFIDENCE_THRESHOLD:
+                    print(f"  Skipping detection with low confidence ({conf:.2f} "
+                          f"< threshold {config.DETECTION_CONFIDENCE_THRESHOLD})")
+                    continue
+
                 bx1, by1, bx2, by2 = boxes[i]
                 
                 # Calculate overlap
@@ -381,17 +390,20 @@ class SurveillanceEngine:
                 target_id = int(track_ids[best_match])
                 class_id = int(classes[best_match])
                 target_name = self.model.names[class_id]
+                reg_conf = float(confidences[best_match])
                 
                 roi_targets.append({
                     'initial_roi': roi_coords,
                     'target_id': target_id,
                     'target_name': target_name,
+                    'reg_confidence': reg_conf,
                     'state_manager': StateManager(self.alert_threshold)
                 })
                 
-                print(f"ROI #{roi_idx+1}: Found '{target_name}' with tracking ID={target_id}")
+                print(f"ROI #{roi_idx+1}: Registered '{target_name}' "
+                      f"(ID={target_id}, conf={reg_conf:.2f})")
             else:
-                print(f"ROI #{roi_idx+1}: No object detected inside this ROI")
+                print(f"ROI #{roi_idx+1}: No object passed confidence threshold in this ROI")
         
         return roi_targets
     
@@ -501,6 +513,20 @@ class SurveillanceEngine:
         if len(alert_objects) > 0:
             self._trigger_alert(annotated_frame, alert_objects)
         
+        # --- Improvement #1: Live FPS Overlay ---
+        fps_text = f"FPS: {self.current_fps:.1f}"
+        model_name = os.path.basename(self.model_path).replace('.pt', '').upper()
+        info_text = f"{fps_text}  |  {model_name}  |  Thresh: {config.DETECTION_CONFIDENCE_THRESHOLD}"
+        
+        frame_h, frame_w = annotated_frame.shape[:2]
+        
+        # Draw a filled background bar at the bottom for readability
+        bar_y = frame_h - 35
+        cv2.rectangle(annotated_frame, (0, bar_y), (frame_w, frame_h), (0, 0, 0), -1)
+        cv2.putText(annotated_frame, info_text,
+                    (10, frame_h - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
         # Callbacks
         if self.on_frame_update:
             self.on_frame_update(annotated_frame)
