@@ -102,8 +102,8 @@ Looking to deploy this on hardware? Check the `iot/` directory:
 ## 📊 Performance Benchmarks
 *Tested on standard consumer hardware (CPU inference) at 720p resolution.*
 
-* **YOLOv8 Nano (n):** ~25-30 FPS (Recommended for single-board computers)
-* **YOLOv8 Small (s):** ~12-15 FPS (Best balance for PC deployments)
+* **YOLOv8 Nano (n):** ~9-10 FPS 
+* **YOLOv8 Small (s):** ~3-5 FPS 
 * **Alert Latency:** < 500ms from the frame the object hits the `ALERT_THRESHOLD`.
 * **State Recovery:** Grace period set by `ALERT_RETURN_THRESHOLD` (default: 10 frames) effectively mitigates >95% of false recoveries due to tracking jitter.
 
