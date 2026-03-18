@@ -15,6 +15,14 @@ from datetime import datetime
 import time
 from typing import List, Dict, Tuple, Optional, Callable
 
+# IIoT Bridge — import safely so CV system works even without paho-mqtt installed
+try:
+    from iot.mqtt_bridge import IoTBridge
+    IOT_AVAILABLE = True
+except ImportError:
+    IOT_AVAILABLE = False
+    print("ℹ️  IIoT MQTT bridge not available (paho-mqtt not installed). CV-only mode.")
+
 
 class SurveillanceEngine:
     """Main surveillance engine handling all tracking and monitoring logic"""
@@ -42,6 +50,15 @@ class SurveillanceEngine:
         self.fps_counter = 0
         self.fps_start_time = time.time()
         self.current_fps = 0
+        
+        # IIoT Cloud Bridge
+        self.iot_bridge = None
+        if IOT_AVAILABLE:
+            try:
+                self.iot_bridge = IoTBridge()
+                print("📡 IIoT Bridge initialized. Will connect to cloud on monitoring start.")
+            except Exception as e:
+                print(f"⚠️  IIoT Bridge init failed: {e}")
         
         # Callbacks for GUI updates
         self.on_frame_update: Optional[Callable] = None
@@ -512,6 +529,14 @@ class SurveillanceEngine:
         # Handle alerts for objects that just entered ALERT state
         if len(alert_objects) > 0:
             self._trigger_alert(annotated_frame, alert_objects)
+            # IIoT: Publish each alert event to the cloud
+            if self.iot_bridge and self.iot_bridge.connected:
+                for obj in alert_objects:
+                    self.iot_bridge.publish_alert(
+                        object_name=obj['name'],
+                        object_id=obj['id'],
+                        roi_index=obj['roi_index']
+                    )
         
         # --- Improvement #1: Live FPS Overlay ---
         fps_text = f"FPS: {self.current_fps:.1f}"
@@ -596,11 +621,21 @@ class SurveillanceEngine:
         """Start monitoring mode"""
         self.is_monitoring = True
         print("✓ Monitoring started")
+        
+        # IIoT: Connect to cloud when monitoring starts
+        if self.iot_bridge:
+            self.iot_bridge.connect_to_cloud()
     
     def stop_monitoring(self):
         """Stop monitoring mode"""
         self.is_monitoring = False
         print("✓ Monitoring stopped")
+        
+        # IIoT: Gracefully disconnect from cloud when monitoring stops
+        if self.iot_bridge and self.iot_bridge.connected:
+            self.iot_bridge.client.loop_stop()
+            self.iot_bridge.client.disconnect()
+            print("📡 IIoT Cloud disconnected.")
     
     def reset_tracking(self):
         """Reset tracker and ROIs"""
