@@ -9,6 +9,8 @@ On Raspberry Pi (prod): Replace the _read_mock_sensor() method with actual
 
 import time
 import threading
+import importlib
+import config
 
 
 class SensorManager:
@@ -37,6 +39,29 @@ class SensorManager:
         self._running = False
         self._triggered_state = False   # Simulated PIR sensor state
         self._poll_thread = None
+        self.poll_interval = float(getattr(config, "IOT_SENSOR_POLL_INTERVAL", 0.1))
+
+        self.hardware_enabled = bool(getattr(config, "IOT_HARDWARE_ENABLED", False))
+        self.pir_pin = int(getattr(config, "PIR_GPIO_PIN", 17))
+        self._gpio = None
+        self._gpio_available = False
+
+        if self.hardware_enabled:
+            self._setup_gpio()
+
+    def _setup_gpio(self):
+        try:
+            GPIO = importlib.import_module("RPi.GPIO")
+
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self.pir_pin, GPIO.IN)
+            self._gpio = GPIO
+            self._gpio_available = True
+            print(f"🔧 [Sensor] GPIO PIR ready on BCM pin {self.pir_pin}")
+        except Exception as exc:
+            self._gpio_available = False
+            print(f"⚠️ [Sensor] GPIO unavailable, simulation mode active: {exc}")
 
     def simulate_trigger(self):
         """
@@ -53,6 +78,9 @@ class SensorManager:
         Returns True if the sensor has been triggered.
         SWAP THIS METHOD for RPi.GPIO.input() when deploying to hardware.
         """
+        if self._gpio_available and self._gpio:
+            return self._gpio.input(self.pir_pin) == self._gpio.HIGH
+
         if self._triggered_state:
             self._triggered_state = False   # Auto-reset (simulate one-shot trigger)
             return True
@@ -60,15 +88,20 @@ class SensorManager:
 
     def _poll_loop(self):
         """Background thread: Polls the sensor and fires the callback."""
-        print("📡 [Sensor] Polling loop started. Press 'm' or call simulate_trigger() to fire.")
+        if self._gpio_available:
+            print("📡 [Sensor] Polling real PIR sensor via GPIO.")
+        else:
+            print("📡 [Sensor] Polling loop started. Press 'm' or call simulate_trigger() to fire.")
         while self._running:
             if self._is_sensor_triggered():
                 if self.on_trigger:
                     self.on_trigger()
-            time.sleep(0.1)     # 10Hz polling rate — fine for a PIR sensor
+            time.sleep(self.poll_interval)
 
     def start_polling(self):
         """Start the sensor polling in a daemon thread."""
+        if self._running:
+            return
         self._running = True
         self._poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
         self._poll_thread.start()
@@ -78,6 +111,14 @@ class SensorManager:
         """Stop the sensor polling thread."""
         self._running = False
         print("📡 [SensorManager] Sensor polling stopped.")
+
+    def cleanup(self):
+        """Cleanup GPIO resources if used."""
+        if self._gpio_available and self._gpio:
+            try:
+                self._gpio.cleanup(self.pir_pin)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

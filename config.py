@@ -30,3 +30,27 @@ ALERT_RETURN_THRESHOLD = 10
 EMAIL_ALERTS_ENABLED = True  # Set to False to disable email alerts
 EMAIL_ALERT_COOLDOWN = 300  # Seconds between emails (300 = 5 minutes)
 EMAIL_INCLUDE_IMAGE = True  # Attach alert snapshot to email
+
+# --- Phase-1 IIoT Integration (Safe Defaults) ---
+# Keep False for normal laptop testing without Raspberry Pi hardware.
+IOT_HARDWARE_ENABLED = False
+
+# Sensor behavior
+IOT_SENSOR_POLL_INTERVAL = 0.1  # seconds
+IOT_SENSOR_TRIGGER_STARTS_MONITORING = False
+
+# GPIO pin mapping (BCM numbering)
+PIR_GPIO_PIN = 17
+ACTUATOR_GPIO_PIN = 23
+
+# Actuation behavior
+ACTUATION_ENABLED = False
+ACTUATOR_ACTIVE_HIGH = True
+ACTUATION_PULSE_SECONDS = 2.0
+
+# MQTT / Cloud
+IOT_MQTT_ENABLED = True
+IOT_DEVICE_ID = "camera_node_01"
+IOT_MQTT_BROKER = "test.mosquitto.org"
+IOT_MQTT_PORT = 1883
+IOT_MQTT_TOPIC_ALERTS = "college/iot/surveillance/alerts"

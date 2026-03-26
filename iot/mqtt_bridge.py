@@ -1,13 +1,16 @@
 import json
 import time
+import os
 from datetime import datetime
 import paho.mqtt.client as mqtt
+import config
 
-# --- IIoT Cloud Configuration ---
-# Example for a local Mosquito broker or cloud like AWS IoT / ThingSpeak
-MQTT_BROKER = "test.mosquitto.org"  # Free public testing broker
-MQTT_PORT = 1883
-MQTT_TOPIC = "college/iot/surveillance/alerts"
+# Optional environment overrides (useful for AWS IoT cert-based deployments)
+MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
+MQTT_TLS_CA_CERT = os.getenv("MQTT_TLS_CA_CERT", "")
+MQTT_TLS_CERTFILE = os.getenv("MQTT_TLS_CERTFILE", "")
+MQTT_TLS_KEYFILE = os.getenv("MQTT_TLS_KEYFILE", "")
 
 class IoTBridge:
     """
@@ -15,9 +18,12 @@ class IoTBridge:
     Publishes JSON telemetry data over MQTT whenever an object is missing.
     """
     
-    def __init__(self, broker=MQTT_BROKER, port=MQTT_PORT):
-        self.broker = broker
-        self.port = port
+    def __init__(self, broker=None, port=None, topic=None):
+        self.enabled = bool(getattr(config, "IOT_MQTT_ENABLED", True))
+        self.broker = broker or config.IOT_MQTT_BROKER
+        self.port = int(port or config.IOT_MQTT_PORT)
+        self.topic = topic or config.IOT_MQTT_TOPIC_ALERTS
+        self.device_id = getattr(config, "IOT_DEVICE_ID", "camera_node_01")
         self.client = mqtt.Client(client_id="CV_Surveillance_Node")
         
         # Setup Callbacks
@@ -28,8 +34,22 @@ class IoTBridge:
         
     def connect_to_cloud(self):
         """Connects to the MQTT Broker (ThingSpeak / AWS)."""
+        if not self.enabled:
+            print("ℹ️ IIoT MQTT disabled by config. Skipping broker connection.")
+            return
+
         print(f"📡 Connecting to IIoT Cloud Broker at {self.broker}:{self.port}...")
         try:
+            if MQTT_USERNAME:
+                self.client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+
+            if MQTT_TLS_CA_CERT:
+                self.client.tls_set(
+                    ca_certs=MQTT_TLS_CA_CERT,
+                    certfile=MQTT_TLS_CERTFILE or None,
+                    keyfile=MQTT_TLS_KEYFILE or None,
+                )
+
             self.client.connect(self.broker, self.port, keepalive=60)
             self.client.loop_start()  # Run network loop in background thread
         except Exception as e:
@@ -56,7 +76,7 @@ class IoTBridge:
             
         # 1. Structure the Telemetry Payload
         payload = {
-            "device_id": "camera_node_01",
+            "device_id": self.device_id,
             "timestamp": datetime.now().isoformat(),
             "event_type": "MISSING_OBJECT",
             "data": {
@@ -72,8 +92,8 @@ class IoTBridge:
         json_payload = json.dumps(payload)
         
         # 3. Transmit via MQTT
-        print(f"📤 Publishing IIoT Payload to {MQTT_TOPIC} -> {json_payload}")
-        result = self.client.publish(MQTT_TOPIC, json_payload, qos=1)
+        print(f"📤 Publishing IIoT Payload to {self.topic} -> {json_payload}")
+        result = self.client.publish(self.topic, json_payload, qos=1)
         
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
             print("✅ IIoT Telemetry Sent.")

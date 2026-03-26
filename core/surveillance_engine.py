@@ -23,6 +23,20 @@ except ImportError:
     IOT_AVAILABLE = False
     print("ℹ️  IIoT MQTT bridge not available (paho-mqtt not installed). CV-only mode.")
 
+try:
+    from iot.sensor_manager import SensorManager
+    SENSOR_AVAILABLE = True
+except ImportError:
+    SENSOR_AVAILABLE = False
+    print("ℹ️  IIoT Sensor manager not available. Sensor integration disabled.")
+
+try:
+    from iot.actuator_manager import ActuatorManager
+    ACTUATOR_AVAILABLE = True
+except ImportError:
+    ACTUATOR_AVAILABLE = False
+    print("ℹ️  IIoT Actuator manager not available. Actuation disabled.")
+
 
 class SurveillanceEngine:
     """Main surveillance engine handling all tracking and monitoring logic"""
@@ -59,6 +73,23 @@ class SurveillanceEngine:
                 print("📡 IIoT Bridge initialized. Will connect to cloud on monitoring start.")
             except Exception as e:
                 print(f"⚠️  IIoT Bridge init failed: {e}")
+
+        # IIoT Sensor + Actuator (safe optional integrations)
+        self.sensor_manager = None
+        if SENSOR_AVAILABLE:
+            try:
+                self.sensor_manager = SensorManager(on_trigger_callback=self._on_sensor_trigger)
+                print("📡 Sensor manager initialized.")
+            except Exception as e:
+                print(f"⚠️ Sensor manager init failed: {e}")
+
+        self.actuator_manager = None
+        if ACTUATOR_AVAILABLE:
+            try:
+                self.actuator_manager = ActuatorManager()
+                print("🔧 Actuator manager initialized.")
+            except Exception as e:
+                print(f"⚠️ Actuator manager init failed: {e}")
         
         # Callbacks for GUI updates
         self.on_frame_update: Optional[Callable] = None
@@ -560,6 +591,26 @@ class SurveillanceEngine:
             self.on_status_update(self.get_status())
         
         return True, annotated_frame, any_alert
+
+    def _on_sensor_trigger(self):
+        """Handle external sensor trigger (e.g., PIR motion)."""
+        print("📡 Sensor trigger received.")
+
+        # Optional behavior: sensor event can auto-start monitoring
+        if getattr(config, "IOT_SENSOR_TRIGGER_STARTS_MONITORING", False) and not self.is_monitoring:
+            self.start_monitoring()
+
+        # Optional telemetry for sensor event
+        if self.iot_bridge and self.iot_bridge.connected:
+            try:
+                self.iot_bridge.publish_alert(
+                    object_name="sensor_motion",
+                    object_id=-1,
+                    roi_index=0,
+                    confidence=0.0
+                )
+            except Exception as e:
+                print(f"⚠️ Sensor telemetry publish failed: {e}")
     
     def _trigger_alert(self, frame: np.ndarray, alert_objects: List[Dict]):
         """Trigger an alert and save snapshot for specific objects"""
@@ -612,6 +663,10 @@ class SurveillanceEngine:
         import threading
         email_thread = threading.Thread(target=send_emails_async, daemon=True)
         email_thread.start()
+
+        # Trigger local actuator for physical alerting (buzzer/relay)
+        if self.actuator_manager:
+            self.actuator_manager.pulse()
         
         # Callback
         if self.on_alert:
@@ -625,6 +680,10 @@ class SurveillanceEngine:
         # IIoT: Connect to cloud when monitoring starts
         if self.iot_bridge:
             self.iot_bridge.connect_to_cloud()
+
+        # IIoT: Start sensor polling when monitoring starts
+        if self.sensor_manager:
+            self.sensor_manager.start_polling()
     
     def stop_monitoring(self):
         """Stop monitoring mode"""
@@ -636,6 +695,10 @@ class SurveillanceEngine:
             self.iot_bridge.client.loop_stop()
             self.iot_bridge.client.disconnect()
             print("📡 IIoT Cloud disconnected.")
+
+        # IIoT: Stop sensor polling when monitoring stops
+        if self.sensor_manager:
+            self.sensor_manager.stop_polling()
     
     def reset_tracking(self):
         """Reset tracker and ROIs"""
@@ -679,6 +742,17 @@ class SurveillanceEngine:
     
     def cleanup(self):
         """Release resources"""
+        if self.sensor_manager:
+            self.sensor_manager.stop_polling()
+            self.sensor_manager.cleanup()
+
+        if self.actuator_manager:
+            self.actuator_manager.cleanup()
+
+        if self.iot_bridge and self.iot_bridge.connected:
+            self.iot_bridge.client.loop_stop()
+            self.iot_bridge.client.disconnect()
+
         if self.cap is not None:
             self.cap.release()
         cv2.destroyAllWindows()
