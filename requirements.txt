@@ -25,6 +25,13 @@ pandas>=2.0.0
 # IIoT Communication & Cloud Bridge
 paho-mqtt>=1.6.1
 
+# Edge Inference - ONNX Runtime (Faster on ARM/Pi)
+onnxruntime>=1.14.0
+
+# ONNX Export Dependencies
+onnx>=1.12.0,<2.0.0
+onnxslim>=0.1.71
+
 # Additional Utilities
 PyYAML>=6.0
 

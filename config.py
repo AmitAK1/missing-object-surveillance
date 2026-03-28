@@ -3,7 +3,7 @@ VIDEO_SOURCE = 0  # 0 for webcam, or "path/to/your_cctv_feed.mp4"
 
 # --- Model ---
 # We'll use the COCO model to auto-detect objects
-MODEL_PATH = "yolov8n.pt"
+MODEL_PATH = "yolov8n.onnx"
 
 # Available models (shown in GUI model selector — download if not present)
 AVAILABLE_MODELS = [
@@ -51,6 +51,6 @@ ACTUATION_PULSE_SECONDS = 2.0
 # MQTT / Cloud
 IOT_MQTT_ENABLED = True
 IOT_DEVICE_ID = "camera_node_01"
-IOT_MQTT_BROKER = "test.mosquitto.org"
-IOT_MQTT_PORT = 1883
+IOT_MQTT_BROKER = "a7q7sm3e2r3me-ats.iot.us-east-1.amazonaws.com"
+IOT_MQTT_PORT = 8883
 IOT_MQTT_TOPIC_ALERTS = "college/iot/surveillance/alerts"

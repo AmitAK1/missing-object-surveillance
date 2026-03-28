@@ -86,6 +86,16 @@ desktop.ini
 # Environment variables
 .env
 
+# AWS IoT certificates and keys
+certs/
+*.pem
+*.pem.crt
+*.pem.key
+*-certificate.pem.crt
+*-private.pem.key
+*-public.pem.key
+AmazonRootCA1.pem
+
 # Temporary files
 *.tmp
 *.temp

@@ -24,7 +24,14 @@ class IoTBridge:
         self.port = int(port or config.IOT_MQTT_PORT)
         self.topic = topic or config.IOT_MQTT_TOPIC_ALERTS
         self.device_id = getattr(config, "IOT_DEVICE_ID", "camera_node_01")
-        self.client = mqtt.Client(client_id="CV_Surveillance_Node")
+        # paho-mqtt v2 changed callback API signatures; force v1 when available
+        if hasattr(mqtt, "CallbackAPIVersion"):
+            self.client = mqtt.Client(
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
+                client_id="CV_Surveillance_Node"
+            )
+        else:
+            self.client = mqtt.Client(client_id="CV_Surveillance_Node")
         
         # Setup Callbacks
         self.client.on_connect = self._on_connect
@@ -44,27 +51,41 @@ class IoTBridge:
                 self.client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 
             if MQTT_TLS_CA_CERT:
+                if not os.path.exists(MQTT_TLS_CA_CERT):
+                    print(f"❌ TLS CA file not found: {MQTT_TLS_CA_CERT}")
+                    return
+                if MQTT_TLS_CERTFILE and not os.path.exists(MQTT_TLS_CERTFILE):
+                    print(f"❌ TLS cert file not found: {MQTT_TLS_CERTFILE}")
+                    return
+                if MQTT_TLS_KEYFILE and not os.path.exists(MQTT_TLS_KEYFILE):
+                    print(f"❌ TLS key file not found: {MQTT_TLS_KEYFILE}")
+                    return
+
                 self.client.tls_set(
                     ca_certs=MQTT_TLS_CA_CERT,
                     certfile=MQTT_TLS_CERTFILE or None,
                     keyfile=MQTT_TLS_KEYFILE or None,
                 )
+            else:
+                print("⚠️ MQTT_TLS_CA_CERT not set. AWS IoT TLS connection may fail.")
 
             self.client.connect(self.broker, self.port, keepalive=60)
             self.client.loop_start()  # Run network loop in background thread
         except Exception as e:
             print(f"❌ IIoT Connection Failed: {e}")
             
-    def _on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
+    def _on_connect(self, client, userdata, flags, rc, properties=None):
+        code = int(rc) if isinstance(rc, int) else getattr(rc, "value", rc)
+        if code == 0:
             self.connected = True
             print("✅ Connected to IIoT Cloud successfully!")
         else:
-            print(f"⚠️ IIoT Connection refused with code: {rc}")
+            print(f"⚠️ IIoT Connection refused with code: {code}")
             
-    def _on_disconnect(self, client, userdata, rc):
+    def _on_disconnect(self, client, userdata, rc, properties=None):
         self.connected = False
-        print("⚠️ Disconnected from IIoT Cloud.")
+        code = int(rc) if isinstance(rc, int) else getattr(rc, "value", rc)
+        print(f"⚠️ Disconnected from IIoT Cloud. rc={code}")
         
     def publish_alert(self, object_name: str, object_id: int, roi_index: int, confidence: float = 0.0):
         """

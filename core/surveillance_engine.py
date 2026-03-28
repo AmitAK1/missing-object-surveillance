@@ -15,6 +15,14 @@ from datetime import datetime
 import time
 from typing import List, Dict, Tuple, Optional, Callable
 
+# ONNX Runtime — optional, for faster Pi inference
+try:
+    import onnxruntime as rt
+    ONNX_AVAILABLE = True
+except ImportError:
+    ONNX_AVAILABLE = False
+    print("ℹ️  ONNX Runtime not available. Will use PyTorch (slower on Pi).")
+
 # IIoT Bridge — import safely so CV system works even without paho-mqtt installed
 try:
     from iot.mqtt_bridge import IoTBridge
@@ -97,10 +105,18 @@ class SurveillanceEngine:
         self.on_alert: Optional[Callable] = None
         
     def load_model(self) -> bool:
-        """Load the YOLO model"""
+        """Load the YOLO model (PyTorch or ONNX)"""
         try:
-            print(f"Loading model: {self.model_path}")
-            self.model = YOLO(self.model_path)
+            # Auto-detect ONNX vs PyTorch
+            if self.model_path.endswith('.onnx') and ONNX_AVAILABLE:
+                print(f"📦 Loading ONNX model: {self.model_path}")
+                # For ONNX, we still wrap with YOLO for compatibility with tracking
+                self.model = YOLO(self.model_path)
+                print("✅ ONNX model loaded (faster inference on Pi)")
+            else:
+                print(f"Loading PyTorch model: {self.model_path}")
+                self.model = YOLO(self.model_path)
+                print("✅ PyTorch model loaded")
             return True
         except Exception as e:
             print(f"Error loading model: {e}")
