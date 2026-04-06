@@ -1,0 +1,11 @@
+# Raspberry Pi (ARM) targeted Python dependencies
+# Prefer installing system OpenCV via apt: `sudo apt install python3-opencv`
+onnxruntime>=1.15.0
+onnx>=1.14.0
+onnxsim>=0.4.7
+numpy>=1.24.0
+paho-mqtt>=1.6.1
+python-dotenv>=1.0.0
+Pillow>=9.5.0
+
+# Note: Avoid installing heavy `torch` on Raspberry Pi. Use ONNXRuntime for inference.

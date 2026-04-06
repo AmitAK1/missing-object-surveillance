@@ -54,3 +54,15 @@ IOT_DEVICE_ID = "camera_node_01"
 IOT_MQTT_BROKER = "test.mosquitto.org"
 IOT_MQTT_PORT = 1883
 IOT_MQTT_TOPIC_ALERTS = "college/iot/surveillance/alerts"
+
+# --- ONNX / Inference Settings ---
+# Recommended image size for ONNX runtime on edge devices (reduce to 480 if memory is tight)
+MODEL_SIZE = 640
+
+# Headless mode: when True, load ROIs from `ROI_FILE` instead of opening GUI selectors
+HEADLESS_MODE = False
+ROI_FILE = "rois.json"
+# --- Camera capture settings to limit memory usage on SBCs ---
+# Set these to desired capture resolution (None leaves camera default)
+CAPTURE_WIDTH = None
+CAPTURE_HEIGHT = None

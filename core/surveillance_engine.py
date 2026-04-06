@@ -99,8 +99,21 @@ class SurveillanceEngine:
     def load_model(self) -> bool:
         """Load the YOLO model"""
         try:
-            print(f"Loading model: {self.model_path}")
-            self.model = YOLO(self.model_path)
+            print(f"Loading model via ModelAdapter: {self.model_path}")
+            from core.inference_backend import ModelAdapter
+            self.model = ModelAdapter(self.model_path)
+            return True
+        except Exception as e:
+            print(f"ModelAdapter load failed: {e}")
+            # Fallback: try ultralytics directly if available
+            try:
+                from ultralytics import YOLO
+                print(f"Loading model via ultralytics YOLO: {self.model_path}")
+                self.model = YOLO(self.model_path)
+                return True
+            except Exception as e2:
+                print(f"Error loading model: {e2}")
+                return False
             return True
         except Exception as e:
             print(f"Error loading model: {e}")
@@ -110,6 +123,15 @@ class SurveillanceEngine:
         """Initialize video capture"""
         try:
             self.cap = cv2.VideoCapture(self.video_source)
+            # Apply optional capture resolution to limit memory usage on SBCs
+            try:
+                if getattr(config, 'CAPTURE_WIDTH', None):
+                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(config.CAPTURE_WIDTH))
+                if getattr(config, 'CAPTURE_HEIGHT', None):
+                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config.CAPTURE_HEIGHT))
+            except Exception:
+                pass
+
             if not self.cap.isOpened():
                 print(f"Error: Could not open video source {self.video_source}")
                 return False
@@ -278,7 +300,33 @@ class SurveillanceEngine:
         print("\n=== Single ROI Mode ===")
         
         # Select ROI
-        roi = self.select_roi_coords(frame, "Select ROI - Single Object", multi=False)
+        # Support headless mode: allow loading ROI from a JSON file when running on Pi
+        if getattr(config, 'HEADLESS_MODE', False):
+            import json
+            roi_file = getattr(config, 'ROI_FILE', 'rois.json')
+            if os.path.exists(roi_file):
+                try:
+                    with open(roi_file, 'r') as fh:
+                        rois = json.load(fh)
+                    if isinstance(rois, (list, tuple)) and len(rois) > 0:
+                        first = rois[0]
+                        # Expect either [x,y,w,h] or {"x":..}
+                        if isinstance(first, dict):
+                            roi = (int(first.get('x', 0)), int(first.get('y', 0)), int(first.get('w', 0)), int(first.get('h', 0)))
+                        else:
+                            roi = tuple(map(int, first))
+                        print(f"Loaded ROI from {roi_file}: {roi}")
+                    else:
+                        print(f"HEADLESS_MODE active but no ROIs found in {roi_file}")
+                        return False
+                except Exception as e:
+                    print(f"Failed to load ROI file {roi_file}: {e}")
+                    return False
+            else:
+                print(f"HEADLESS_MODE active but ROI file not found: {roi_file}")
+                return False
+        else:
+            roi = self.select_roi_coords(frame, "Select ROI - Single Object", multi=False)
 
         print(f"DEBUG: ROI returned: {roi}, type: {type(roi)}")
         
@@ -327,7 +375,31 @@ class SurveillanceEngine:
         """Setup multiple ROI tracking"""
         print("\n=== Multiple ROI Mode ===")
         # Use OpenCV's selectROIs to allow multiple selection in one window
-        rois = self.select_roi_coords(frame, "Select Multiple ROIs", multi=True)
+        # If headless, attempt to load ROIs from a JSON file
+        if getattr(config, 'HEADLESS_MODE', False):
+            import json
+            roi_file = getattr(config, 'ROI_FILE', 'rois.json')
+            if os.path.exists(roi_file):
+                try:
+                    with open(roi_file, 'r') as fh:
+                        rois = json.load(fh)
+                    # Normalize to list of tuples (x,y,w,h)
+                    normalized = []
+                    for item in rois:
+                        if isinstance(item, dict):
+                            normalized.append((int(item.get('x', 0)), int(item.get('y', 0)), int(item.get('w', 0)), int(item.get('h', 0))))
+                        else:
+                            normalized.append(tuple(map(int, item)))
+                    rois = normalized
+                    print(f"Loaded {len(rois)} ROI(s) from {roi_file}")
+                except Exception as e:
+                    print(f"Failed to load ROI file {roi_file}: {e}")
+                    return False
+            else:
+                print(f"HEADLESS_MODE active but ROI file not found: {roi_file}")
+                return False
+        else:
+            rois = self.select_roi_coords(frame, "Select Multiple ROIs", multi=True)
 
         # rois is a numpy array or empty tuple if cancelled or no selection made
         print(f"DEBUG: ROIs returned: {rois}, type: {type(rois)}, length: {len(rois) if hasattr(rois, '__len__') else 'N/A'}")
@@ -708,7 +780,10 @@ class SurveillanceEngine:
         
         # Reload model to reset tracker
         if self.model_path:
-            self.model = YOLO(self.model_path)
+            try:
+                self.load_model()
+            except Exception:
+                pass
         
         print("✓ Tracking reset")
     
