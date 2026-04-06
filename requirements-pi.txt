@@ -9,3 +9,12 @@ python-dotenv>=1.0.0
 Pillow>=9.5.0
 
 # Note: Avoid installing heavy `torch` on Raspberry Pi. Use ONNXRuntime for inference.
+
+# Desktop/Dev additions (install these in your venv to run GUI and local smoke-tests)
+# On Raspberry Pi prefer system OpenCV via apt and `opencv-python-headless` or prebuilt wheels.
+opencv-python>=4.8.0
+customtkinter>=5.2.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+scipy>=1.9.0
+lap>=0.5.13
