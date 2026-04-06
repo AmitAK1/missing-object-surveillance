@@ -1,0 +1,32 @@
+# Missing Object Surveillance System - Raspberry Pi 2GB Profile
+#
+# Use this on the Raspberry Pi when you want the lightest practical install.
+# It is intended for headless runtime + MQTT/cloud + ONNX inference.
+#
+# Install:
+#   python -m pip install -r requirements-pi-2gb.txt
+#
+# Notes:
+# - This file skips the desktop dashboard stack (customtkinter, matplotlib, pandas).
+# - Keep the GUI version in requirements.txt for laptop development / ROI setup.
+# - On Pi, prefer a headless OpenCV build to reduce footprint.
+
+# Core CV / inference runtime
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+ultralytics>=8.0.0
+lapx>=0.5.2
+
+# ONNX inference on Raspberry Pi
+onnxruntime>=1.14.0
+
+# Cloud / telemetry / config
+paho-mqtt>=1.6.1
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# Optional but commonly useful on Pi for alert snapshots / image handling
+Pillow>=9.5.0
+
+# Optional only if you need email alerts on the Pi runtime
+# (kept here because the backend can use email notifications without the GUI)
